@@ -78,3 +78,42 @@ Add OwnerSplitState Nvarchar(255);
 Update NashvilleHousing
 SET OwnerSplitState = SUBSTRING_INDEX(SUBSTRING_INDEX(REPLACE(OwnerAddress, ',', '.'), '.', 3), '.', -1)
 
+##### Change Y to Yes, and N to No in "Sold as Vacant" field
+Select SoldAsVacant
+, CASE When SoldAsVacant = 'Y' then 'Yes'
+       When SoldAsVacant = 'N' then 'No'
+       ELSE SoldAsVacant
+       END
+from NashvilleHousing
+
+Update NashvilleHousing
+Set SoldAsVacant = CASE When SoldAsVacant = 'Y' then 'Yes'
+       When SoldAsVacant = 'N' then 'No'
+       ELSE SoldAsVacant
+       END
+
+#### Remove Duplicates
+WITH RowNumCTE AS (
+    SELECT *,
+           ROW_NUMBER() OVER (
+               PARTITION BY ParcelID, SalePrice, SaleDate, LegalReference
+               ORDER BY UniqueID
+           ) AS row_num
+    FROM NashvilleHousing
+)
+DELETE FROM NashvilleHousing
+WHERE UniqueID IN (
+    SELECT UniqueID
+    FROM RowNumCTE
+    WHERE row_num > 1
+)
+
+
+#### Delete Unused Columns
+ALTER TABLE NashvilleHousing
+DROP COLUMN OwnerAddress,
+DROP COLUMN TaxDistrict,
+DROP COLUMN PropertyAddress,
+DROP COLUMN SaleDate
+
+
